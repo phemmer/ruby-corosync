@@ -1,0 +1,23 @@
+GIT
+  remote: git://github.com/phemmer/ffi-swig-generator.git
+  revision: dca50df4843f7283122e558c2864c64cb535d9bf
+  branch: phemmer
+  specs:
+    ffi-swig-generator (0.3.3)
+      nokogiri (>= 1.6.0)
+      rake (>= 0.9.2.2)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    mini_portile (0.5.1)
+    nokogiri (1.6.0)
+      mini_portile (~> 0.5.0)
+    rake (10.1.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  ffi-swig-generator!
+  rake
