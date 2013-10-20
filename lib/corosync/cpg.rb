@@ -5,13 +5,16 @@ class Corosync::CPG
 	attr_reader :members
 
 	def initialize(group = nil)
-		model = Corosync::CpgModelV1DataT.new
-		model[:cpg_deliver_fn] = self.method(:callback_deliver)
-		model[:cpg_confchg_fn] = self.method(:callback_confchg)
-		model[:cpg_totem_confchg_fn] = self.method(:callback_totem_confchg)
+		# The model has to be preserved so it doesn't get garbage collected.
+		# Apparently CPG needs to reference it long after initialization :-(
+		#  (cpg.c:423)
+		@model = Corosync::CpgModelV1DataT.new
+		@model[:cpg_deliver_fn] = self.method(:callback_deliver)
+		@model[:cpg_confchg_fn] = self.method(:callback_confchg)
+		@model[:cpg_totem_confchg_fn] = self.method(:callback_totem_confchg)
 
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:cpg_handle_t))
-		cs_error = Corosync.cpg_model_initialize(handle_ptr, Corosync::CPG_MODEL_V1, model.pointer, nil);
+		cs_error = Corosync.cpg_model_initialize(handle_ptr, Corosync::CPG_MODEL_V1, @model.pointer, nil);
 		if cs_error != :ok then
 			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to connect to corosync"
 		end
@@ -39,9 +42,11 @@ class Corosync::CPG
 			select([@fd], [], [], timeout)
 		end
 		cs_error = Corosync.cpg_dispatch(@handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
+		return false if cs_error == :err_try_again
 		if cs_error != :ok then
 			raise StandardError, "Received #{cs_error.to_s.upcase} attempting perform dispatch"
 		end
+		return true
 	end
 
 	def on_message(&block)
@@ -57,18 +62,18 @@ class Corosync::CPG
 		@callback_confchg = block
 	end
 	def callback_confchg(handle, group_name_p, member_list_p, member_list_size, left_list_p, left_list_size, joined_list_p, joined_list_size)
-		return if !@callback_confchg
 		member_list = member_list_size.times.collect do |i|
 			member = Corosync::CpgAddress.new(member_list_p + i * Corosync::CpgAddress.size)
 		end
+		@members = member_list.dup
+		return if !@callback_confchg
+
 		left_list = left_list_size.times.collect do |i|
 			left = Corosync::CpgAddress.new(left_list_p + i * Corosync::CpgAddress.size)
 		end
 		joined_list = joined_list_size.times.collect do |i|
 			joined = Corosync::CpgAddress.new(joined_list_p + i * Corosync::CpgAddress.size)
 		end
-
-		@members = member_list.dup
 
 		@callback_confchg.call(member_list, left_list, joined_list)
 	end
