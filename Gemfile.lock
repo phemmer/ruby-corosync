@@ -10,10 +10,14 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
+    json (1.8.0)
     mini_portile (0.5.1)
     nokogiri (1.6.0)
       mini_portile (~> 0.5.0)
     rake (10.1.0)
+    rdoc (3.12.2)
+      json (~> 1.4)
+    yard (0.8.7)
 
 PLATFORMS
   ruby
@@ -21,3 +25,5 @@ PLATFORMS
 DEPENDENCIES
   ffi-swig-generator!
   rake
+  rdoc
+  yard
