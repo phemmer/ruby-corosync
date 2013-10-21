@@ -1,3 +1,4 @@
+require File.expand_path('../../corosync.rb', __FILE__)
 require File.expand_path('../../../ffi/cpg.rb', __FILE__)
 
 # @example
@@ -20,6 +21,10 @@ class Corosync::CPG
 	# {Corosync::CPG::Membership Members} currently in the group.
 	# @return [Array<Membership>]
 	attr_reader :members
+
+	# Name of the currently joined group
+	# @return [String]
+	attr_reader :group
 
 	# Creates a new CPG connection to the CPG service.  
 	# You can spawn as many connections as you like in a single process, but each connection can only belong to a single group.  

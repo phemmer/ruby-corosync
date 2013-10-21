@@ -25,3 +25,10 @@ end
 corosync_services = ['cpg']
 multitask :ffi => ['ffi/common.rb'] + corosync_services.map{|s| "ffi/#{s}.rb"}
 
+########################################
+desc 'Run tests'
+require 'rspec/core/rake_task'
+RSpec::Core::RakeTask.new(:test) do |t|
+	t.pattern = 'spec/**/*.rb'
+	t.rspec_opts = '-c -f d --fail-fast'
+end
