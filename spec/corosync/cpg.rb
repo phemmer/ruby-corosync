@@ -25,7 +25,8 @@ describe Corosync::CPG do
 		end
 
 		it 'has ourself as a member' do
-			expect(@cpg.members).to include(@cpg.membership)
+			membership = @cpg.membership
+			expect(@cpg.members.find_all{|m| m === membership}).to have(1).items
 		end
 	end
 
@@ -41,7 +42,8 @@ describe Corosync::CPG do
 		end
 
 		it 'has ourself as a member' do
-			expect(@cpg.members).to include(@cpg.membership)
+			membership = @cpg.membership
+			expect(@cpg.members.find_all{|m| m === membership}).to have(1).items
 		end
 	end
 end
