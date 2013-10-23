@@ -1,12 +1,13 @@
 require File.expand_path('../../corosync.rb', __FILE__)
 require File.expand_path('../../../ffi/cpg.rb', __FILE__)
 
-require 'corosync/cpg/membership'
+require 'corosync/cpg/member_list'
+require 'corosync/cpg/member'
 
 # @example
 #   cpg = Corosync::CPG.new('mygroup')
-#   cpg.on_message do |message, membership|
-#     puts "Received #{message}
+#   cpg.on_message do |message, member|
+#     puts "Received #{message}"
 #   end
 #   puts "Member node IDs: #{cpg.members.map {|m| m.nodeid}.join(" ")}"
 #   cpg.send "hello"
@@ -20,8 +21,8 @@ class Corosync::CPG
 	# @return [IO]
 	attr_reader :fd
 
-	# {Corosync::CPG::Membership Members} currently in the group.
-	# @return [Array<Membership>]
+	# Members currently in the group.
+	# @return [Corosync::CPG::MemberList]
 	attr_reader :members
 
 	# Name of the currently joined group
@@ -45,13 +46,10 @@ class Corosync::CPG
 		@model[:cpg_confchg_fn] = self.method(:callback_confchg)
 		@model[:cpg_totem_confchg_fn] = self.method(:callback_totem_confchg)
 
-		ObjectSpace.define_finalizer(self, self.method(:finalize))
-
-
 		@group = nil
 		@fd = nil
 		@handle = nil
-		@members = []
+		@members = Corosync::CPG::MemberList.new
 
 		join group if group
 	end
@@ -88,7 +86,7 @@ class Corosync::CPG
 		@fd = nil
 		@model = nil
 		@handle = nil
-		@members = []
+		@members = Corosync::CPG::MemberList.new
 
 		true
 	end
@@ -130,7 +128,7 @@ class Corosync::CPG
 		end
 
 		@group = nil
-		@members = []
+		@members = Corosync::CPG::MemberList.new
 	end
 
 	# Checks for a single pending events and triggers the appropriate callback if found.
@@ -155,7 +153,7 @@ class Corosync::CPG
 	# Proc to call when a message is received.
 	# @param block [Proc] Proc to call when a message is received. Pass +Nil+ to disable the callback.
 	# @yieldparam message [String] Message content.
-	# @yieldparam membership [Corosync::CPG::Membership] Membership describing where the message came from.
+	# @yieldparam member [Corosync::CPG::Member] Member from which the message came
 	# @return [void]
 	def on_message(&block)
 		@callback_deliver = block
@@ -163,32 +161,38 @@ class Corosync::CPG
 	def callback_deliver(handle, group_name_p, nodeid, pid, message_p, message_len)
 		return if !@callback_deliver
 		message = message_p.read_bytes(message_len)
-		@callback_deliver.call(message, Corosync::CPG::Membership.new(:nodeid => nodeid, :pid => pid))
+		@callback_deliver.call(message, Corosync::CPG::Member.new(nodeid, pid))
 	end
 	private :callback_deliver
 
 	# Proc to call when a node joins/leaves the group.
 	# If this is set before calling {#join}, it will be called when joining the group.
 	# @param block [Proc] Proc to call when a node joins/leaves the group. Pass +Nil+ to disable the callback.
-	# @yieldparam member_list [Array<Membership>] {Corosync::CPG::Membership Members} in the group after the change completed.
-	# @yieldparam left_list [Array<Membership>] {Corosync::CPG::Membership Members} who left the group.
-	# @yieldparam joined_list [Array<Membership>] {Corosync::CPG::Membership Members} who joined the group.
+	# @yieldparam member_list [Corosync::CPG::MemberList] Members in the group after the change completed.
+	# @yieldparam left_list [Corosync::CPG::MemberList] Members who left the group.
+	# @yieldparam joined_list [Corosync::CPG::MemberList] Members who joined the group.
 	# @return [void]
 	def on_confchg(&block)
 		@callback_confchg = block
 	end
 	def callback_confchg(handle, group_name_p, member_list_p, member_list_size, left_list_p, left_list_size, joined_list_p, joined_list_size)
-		member_list = member_list_size.times.collect do |i|
-			member = Corosync::CPG::Membership.new(member_list_p + i * Corosync::CpgAddress.size)
+		member_list = Corosync::CPG::MemberList.new
+		member_list_size.times do |i|
+			member_list << (member_list_p + i * Corosync::CpgAddress.size)
 		end
-		@members = member_list.dup
-		return if !@callback_confchg
 
-		left_list = left_list_size.times.collect do |i|
-			Corosync::CPG::Membership.new(left_list_p + i * Corosync::CpgAddress.size)
+		@members = member_list.dup.freeze
+
+		return if !@callback_confchg # no point in continuing otherwise
+
+		left_list = Corosync::CPG::MemberList.new
+		left_list_size.times do |i|
+			left_list << (left_list_p + i * Corosync::CpgAddress.size)
 		end
-		joined_list = joined_list_size.times.collect do |i|
-			Corosync::CPG::Membership.new(joined_list_p + i * Corosync::CpgAddress.size)
+
+		joined_list = Corosync::CPG::MemberList.new
+		joined_list_size.times do |i|
+			joined_list << (joined_list_p + i * Corosync::CpgAddress.size)
 		end
 
 		@callback_confchg.call(member_list, left_list, joined_list)
@@ -225,10 +229,10 @@ class Corosync::CPG
 		nodeid_p.read_uint
 	end
 
-	# Returns the {Corosync::CPG::Membership membership} object describing ourself.
-	# @return [Corosync::CPG::Membership]
-	def membership
-		Corosync::CPG::Membership.new(:nodeid => self.nodeid, :pid => $$, :reason => 0)
+	# Returns the {Corosync::CPG::Member member} object describing ourself.
+	# @return [Corosync::CPG::Member]
+	def member
+		Corosync::CPG::Member.new(self.nodeid, $$)
 	end
 
 	# Send one or more messages to the group.

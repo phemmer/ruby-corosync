@@ -25,7 +25,7 @@ Currently the only supported service is CPG. It is fully functional, though it m
 
     cpg = Corosync::CPG.new('mygroup')
     cpg.on_message do |message, membership|
-      puts "Received #{message}
+      puts "Received #{message}"
     end
     puts "Member node IDs: #{cpg.members.map {|m| m.nodeid}.join(" ")}"
     cpg.send "hello"
