@@ -1,7 +1,6 @@
 GIT
-  remote: git://github.com/phemmer/ffi-swig-generator.git
-  revision: dc806bca38861e00f4578a9435e70e0aa25e1866
-  branch: phemmer
+  remote: git://github.com/ffi/ffi-swig-generator.git
+  revision: 818e921fc85aa58550c15e558af81edd1e8e9f69
   specs:
     ffi-swig-generator (0.3.3)
       nokogiri (>= 1.6.0)
@@ -13,7 +12,7 @@ GEM
     diff-lcs (1.2.4)
     ffi (1.9.0)
     json (1.8.1)
-    mini_portile (0.5.1)
+    mini_portile (0.5.2)
     nokogiri (1.6.0)
       mini_portile (~> 0.5.0)
     rake (10.1.0)

@@ -7,24 +7,29 @@ module Corosync
 
   typedef :uint64, :cpg_handle_t
   typedef :uint64, :cpg_iteration_handle_t
+  CPG_TYPE_UNORDERED = 0
+  CPG_TYPE_FIFO = CPG_TYPE_UNORDERED + 1
+  CPG_TYPE_AGREED = CPG_TYPE_FIFO + 1
+  CPG_TYPE_SAFE = CPG_TYPE_AGREED + 1
   cpg_guarantee_t = enum :cpg_guarantee_t, [
     :unordered,
     :fifo,
     :agreed,
     :safe,
   ]
-  CPG_TYPE_UNORDERED = 0
-  CPG_TYPE_FIFO = CPG_TYPE_UNORDERED + 1
-  CPG_TYPE_AGREED = CPG_TYPE_FIFO + 1
-  CPG_TYPE_SAFE = CPG_TYPE_AGREED + 1
 
+  CPG_FLOW_CONTROL_DISABLED = 0
+  CPG_FLOW_CONTROL_ENABLED = CPG_FLOW_CONTROL_DISABLED + 1
   cpg_flow_control_state_t = enum :cpg_flow_control_state_t, [
     :disabled,
     :enabled,
   ]
-  CPG_FLOW_CONTROL_DISABLED = 0
-  CPG_FLOW_CONTROL_ENABLED = CPG_FLOW_CONTROL_DISABLED + 1
 
+  CPG_REASON_JOIN = 1
+  CPG_REASON_LEAVE = 2
+  CPG_REASON_NODEDOWN = 3
+  CPG_REASON_NODEUP = 4
+  CPG_REASON_PROCDOWN = 5
   cpg_reason_t = enum :cpg_reason_t, [
     :join, 1,
     :leave, 2,
@@ -32,25 +37,20 @@ module Corosync
     :nodeup, 4,
     :procdown, 5,
   ]
-  CPG_REASON_JOIN = 1
-  CPG_REASON_LEAVE = 2
-  CPG_REASON_NODEDOWN = 3
-  CPG_REASON_NODEUP = 4
-  CPG_REASON_PROCDOWN = 5
 
+  CPG_ITERATION_NAME_ONLY = 1
+  CPG_ITERATION_ONE_GROUP = 2
+  CPG_ITERATION_ALL = 3
   cpg_iteration_type_t = enum :cpg_iteration_type_t, [
     :name_only, 1,
     :one_group, 2,
     :all, 3,
   ]
-  CPG_ITERATION_NAME_ONLY = 1
-  CPG_ITERATION_ONE_GROUP = 2
-  CPG_ITERATION_ALL = 3
 
+  CPG_MODEL_V1 = 1
   cpg_model_t = enum :cpg_model_t, [
     :v1, 1,
   ]
-  CPG_MODEL_V1 = 1
 
   class CpgAddress < FFI::Struct
     layout(
