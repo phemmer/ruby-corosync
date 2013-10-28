@@ -27,7 +27,8 @@ class Corosync::CPG::Member
 				raise ArgumentError, "Invalid argument type"
 			end
 		elsif args.size == 2 then
-			@nodeid, @pid = *args
+			@nodeid = args.shift.to_i
+			@pid = args.shift.to_i
 		else
 			raise ArgumentError, "wrong number of arguments (#{args.size} for 1..2)"
 		end
