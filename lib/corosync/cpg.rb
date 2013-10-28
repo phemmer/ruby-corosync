@@ -4,6 +4,23 @@ require File.expand_path('../../../ffi/cpg.rb', __FILE__)
 require 'corosync/cpg/member_list'
 require 'corosync/cpg/member'
 
+# CPG is used for sending messages between processes (usually on multiple servers).
+# The benefits offered by CPG over normal IPC is that message order is guaranteed.
+# If you have 3 nodes, and both node 1 and node 2 send a message at the exact same time, all 3 nodes will receive the messages in the same order. One of the key details in this is that a node will also receive it's own message.
+# You can also be notified whenever nodes join or leave the group. The order of these messages is preserved as well.
+#
+# This is all done through callbacks. You define a block of code to execute, and whenever a message is received, it is passed to that block.  
+# After registering the callbacks, you call {#dispatch} to check for any pending messages, upon which the appropriate callbacks will be executed.
+#
+# The simplest usage of this library is to call `Corosync::CPG.new('groupname')`. This will connect to CPG and join the specified group. Note though that upon joining a group, the library automatically calls {#dispatch} once on it's own. This is so that it can get the initial confchg message and obtain a group membership list. As such you will not have been able to establish a callback yet. The solution to this is to create the CPG object without joining, register your callbacks, and then call {#join}.
+#
+# == Threading notice
+# With MRI Ruby 1.9.3 and older, you cannot call {#dispatch} from within a thread. Attempting to do so will result in a segfault.  
+# This is because the Corosync library allocates a very large buffer on the stack, and these versions of Ruby do not allocate enough memory to the thread stack.  
+# With MRI Ruby 2.0.0 the behavior is a bit different. There is a workaround, but without it, calling {#dispatch} will result in the thread hanging. The workaround is that you you can pass the environment variable RUBY_THREAD_MACHINE_STACK_SIZE to increase the size of the thread stack. The recommended size is 1572864.
+#
+# ----
+#
 # @example
 #   cpg = Corosync::CPG.new('mygroup')
 #   cpg.on_message do |message, member|
@@ -32,7 +49,7 @@ class Corosync::CPG
 	# Creates a new CPG connection to the CPG service.  
 	# You can spawn as many connections as you like in a single process, but each connection can only belong to a single group.  
 	# If you get an *ERR_LIBRARY* error, corosync is likely not running.  
-	# If you get an *EACCESS* error, you're likely not running as root.
+	# If you get an *EACCESS* error, you're likely not running as root (or havent set a `uidgid` directive in the config).
 	#
 	# @param group [String] The name of the group to join. If not provided, you must call {#join} later.
 	#
@@ -92,7 +109,8 @@ class Corosync::CPG
 	end
 	alias_method :close, :finalize
 
-	# Join the specified closed process group.
+	# Join the specified closed process group.  
+	# Note that the library will automatically make a call to {#dispatch} upon join. This is so that it can obtain a group membership list. If you wish to receive the initial join message, you must register the callback with {#on_confchg} before calling {#join}.
 	# @param name [String] Name of the group. Maximum length of 128 characters.
 	# @return [void]
 	def join(name)
