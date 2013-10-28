@@ -38,6 +38,11 @@ class Corosync::CPG::Member
 	def ==(target)
 		self.class == target.class and @nodeid == target.nodeid and @pid == target.pid
 	end
+	alias_method :eql?, :==
+
+	def hash
+		[@nodid,@pid].hash
+	end
 
 	def to_s
 		"#{@nodeid}:#{@pid}"
