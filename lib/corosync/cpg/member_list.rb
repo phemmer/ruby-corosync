@@ -35,6 +35,30 @@ class Corosync::CPG::MemberList
 		@list.each_key &block
 	end
 
+	# Get a list of all members also present in another list
+	# @param list [Corosync::CPG::MemberList]
+	# @return [Corosync::CPG::MemberList]
+	def &(list)
+		@list.keys & list.to_a
+	end
+
+	# Delete member from list
+	# @param member [Corosync::CPG::Member] Member to delete
+	# @return [void]
+	def delete(member)
+		@list.delete(member)
+	end
+
+	# Duplicate
+	# @return [Corosync::CPG::MemberList]
+	def dup
+		new = self.class.new
+		self.each do |member|
+			new << member.dup
+		end
+		new
+	end
+
 	# In the case of join/leave lists, this gets the reason a member is in the list.
 	# @param member [Corosync::CPG::Member] Member look up
 	# @return [Symbol, Integer, NilClass] Reason for the membership.
