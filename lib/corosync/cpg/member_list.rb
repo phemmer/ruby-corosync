@@ -7,8 +7,27 @@ end
 class Corosync::CPG::MemberList
 	include Enumerable
 
-	def initialize()
+	def self.new(*list)
+		# return the input list if we were passed a MemberList
+		return list[0] if list.size == 1 and list[0].is_a?(self)
+		super
+	end
+	def initialize(*list)
 		@list = {}
+
+		list = list[0] if list.size <= 1
+
+		if list.is_a?(Array) then
+			list.each do |recipient|
+				self << recipient
+			end
+		elsif list.is_a?(Corosync::CPG::Member) then
+			self << list
+		elsif list.nil? then
+			# nothing
+		else
+			raise ArgumentError, "Invalid recipient type: #{list.class}"
+		end
 	end
 
 	# Add a member to the list
