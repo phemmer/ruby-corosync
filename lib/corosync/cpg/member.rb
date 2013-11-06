@@ -20,7 +20,7 @@ class Corosync::CPG::Member
 			member = args.first
 
 			member = Corosync::CpgAddress.new(member) if member.is_a?(FFI::Pointer)
-			if member.is_a?(Corosync::CpgAddress) then
+			if member.is_a?(Corosync::CpgAddress) or member.is_a?(Corosync::CpgIterationDescriptionT) then
 				@nodeid = member[:nodeid]
 				@pid = member[:pid]
 			else

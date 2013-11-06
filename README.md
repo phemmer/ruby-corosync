@@ -23,6 +23,7 @@ Currently the only supported service is CPG. It is fully functional, though it m
 
 ### CPG
 
+    require 'corosync/cpg'
     cpg = Corosync::CPG.new('mygroup')
     cpg.on_message do |message, membership|
       puts "Received #{message}"

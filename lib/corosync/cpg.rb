@@ -12,7 +12,7 @@ require 'corosync/cpg/member'
 # This is all done through callbacks. You define a block of code to execute, and whenever a message is received, it is passed to that block.  
 # After registering the callbacks, you call {#dispatch} to check for any pending messages, upon which the appropriate callbacks will be executed.
 #
-# The simplest usage of this library is to call `Corosync::CPG.new('groupname')`. This will connect to CPG and join the specified group. Note though that upon joining a group, the library automatically calls {#dispatch} once on it's own. This is so that it can get the initial confchg message and obtain a group membership list. As such you will not have been able to establish a callback yet. The solution to this is to create the CPG object without joining, register your callbacks, and then call {#join}.
+# The simplest usage of this library is to call `Corosync::CPG.new('groupname')`. This will connect to CPG and join the specified group.
 #
 # == Threading notice
 # With MRI Ruby 1.9.3 and older, you cannot call {#dispatch} from within a thread. Attempting to do so will result in a segfault.  
@@ -22,6 +22,7 @@ require 'corosync/cpg/member'
 # ----
 #
 # @example
+#   require 'corosync/cpg'
 #   cpg = Corosync::CPG.new('mygroup')
 #   cpg.on_message do |message, member|
 #     puts "Received #{message}"
@@ -37,10 +38,6 @@ class Corosync::CPG
 	# You can use this to check for activity, but do not read anything from it.
 	# @return [IO]
 	attr_reader :fd
-
-	# Members currently in the group.
-	# @return [Corosync::CPG::MemberList]
-	attr_reader :members
 
 	# Name of the currently joined group
 	# @return [String]
@@ -66,7 +63,6 @@ class Corosync::CPG
 		@group = nil
 		@fd = nil
 		@handle = nil
-		@members = Corosync::CPG::MemberList.new
 
 		join group if group
 	end
@@ -103,14 +99,12 @@ class Corosync::CPG
 		@fd = nil
 		@model = nil
 		@handle = nil
-		@members = Corosync::CPG::MemberList.new
 
 		true
 	end
 	alias_method :close, :finalize
 
 	# Join the specified closed process group.  
-	# Note that the library will automatically make a call to {#dispatch} upon join. This is so that it can obtain a group membership list. If you wish to receive the initial join message, you must register the callback with {#on_confchg} before calling {#join}.
 	# @param name [String] Name of the group. Maximum length of 128 characters.
 	# @return [void]
 	def join(name)
@@ -123,8 +117,6 @@ class Corosync::CPG
 		if cs_error != :ok then
 			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to join group"
 		end
-
-		dispatch
 
 		@group = name
 
@@ -146,7 +138,6 @@ class Corosync::CPG
 		end
 
 		@group = nil
-		@members = Corosync::CPG::MemberList.new
 	end
 
 	# Checks for a single pending events and triggers the appropriate callback if found.
@@ -199,8 +190,6 @@ class Corosync::CPG
 			member_list << (member_list_p + i * Corosync::CpgAddress.size)
 		end
 
-		@members = member_list.dup.freeze
-
 		return if !@callback_confchg # no point in continuing otherwise
 
 		left_list = Corosync::CPG::MemberList.new
@@ -245,6 +234,40 @@ class Corosync::CPG
 			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get nodeid"
 		end
 		nodeid_p.read_uint
+	end
+
+	# Gets a list of members currently in the group
+	# @return [Corosync::CPG::MemberList]
+	def members
+		members = Corosync::CPG::MemberList.new
+
+		cpg_name = Corosync::CpgName.new
+		cpg_name[:value] = @group
+		cpg_name[:length] = @group.size
+
+		iteration_handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:cpg_iteration_handle_t))
+		cs_error = Corosync.cpg_iteration_initialize(@handle, Corosync::CPG_ITERATION_ONE_GROUP, cpg_name, iteration_handle_ptr)
+		if cs_error != :ok then
+			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to initialize member iteration"
+		end
+		iteration_handle = iteration_handle_ptr.read_uint64
+
+		begin
+			iteration_description = Corosync::CpgIterationDescriptionT.new
+			while (cs_error = Corosync.cpg_iteration_next(iteration_handle, iteration_description.pointer)) == :ok do
+				members << Corosync::CPG::Member.new(iteration_description)
+			end
+			if cs_error != :err_no_sections then
+				raise StandardError, "Received #{cs_error.to_s.upcase} attempting to iterate group members"
+			end
+		ensure
+			cs_error = Corosync.cpg_iteration_finalize(iteration_handle)
+			if cs_error != :ok then
+				raise StandardError, "Received #{cs_error.to_s.upcase} attempting to finalize member iteration"
+			end
+		end
+
+		members
 	end
 
 	# Returns the {Corosync::CPG::Member member} object describing ourself.
