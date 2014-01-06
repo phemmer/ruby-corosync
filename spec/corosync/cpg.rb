@@ -1,5 +1,6 @@
 require 'spec_helper'
 
+require 'corosync/cpg'
 describe Corosync::CPG do
 	context '#initialize offline' do
 		before(:all) do
