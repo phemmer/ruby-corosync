@@ -13,6 +13,7 @@ require File.expand_path('../../../ffi/quorum.rb', __FILE__)
 #     puts "Cluster is#{quorate ? '' ' not'} quorate"
 #     puts "  Members: #{member_list.join(' ')}"
 #   end
+#   quorum.connect
 #   loop do
 #     quorum.dispatch
 #   end
@@ -59,7 +60,7 @@ class Corosync::Quorum
 		end
 		@fd = IO.new(fd_ptr.read_int)
 
-		self.start(initial_callback) if start
+		self.start if start
 	end
 
 	# Shuts down the connection to the Quorum service
@@ -124,7 +125,7 @@ class Corosync::Quorum
 
 	# Proc to call when quorum state changes.
 	# @param block [Proc] Proc to call when quorm state changes. Pass +Nil+ to disable the callback.
-	# @yieldparam message [Boolean] Whether cluster is quorate.
+	# @yieldparam quorate [Boolean] Whether cluster is quorate.
 	# @yieldparam members [Array<Fixnum>] Node ID of cluster members.
 	# @return [void]
 	def on_notify(&block)
