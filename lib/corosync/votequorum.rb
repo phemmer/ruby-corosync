@@ -21,6 +21,8 @@ require File.expand_path('../../../ffi/votequorum.rb', __FILE__)
 #     vq.dispatch
 #   end
 class Corosync::Votequorum
+	require 'ostruct'
+
 	# The IO object containing the file descriptor notifications come across.
 	# You can use this to check for activity, but do not read anything from it.
 	# @return [IO]
@@ -139,7 +141,7 @@ class Corosync::Votequorum
 
 		node_list = {}
 		node_list_entries.times do |i|
-			node = Corosync.VotequorumNodeT.new(node_list_ptr + i * FFI.type_size(:uint32))
+			node = Corosync::VotequorumNodeT.new(node_list_ptr + i * Corosync::VotequorumNodeT.size)
 			node_list[node[:nodeid]] = {
 				Corosync::VOTEQUORUM_NODESTATE_MEMBER => :member,
 				Corosync::VOTEQUORUM_NODESTATE_DEAD => :dead,
