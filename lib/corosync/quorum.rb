@@ -134,7 +134,7 @@ class Corosync::Quorum
 	def callback_notify(handle, quorate, ring_id, view_list_entries, view_list_ptr)
 		return if !@callback_notify
 
-		view_list = view_list_ptr.read_array_of_type(FFI.find_type(:uint32), :read_uint32, FFI.type_size(:uint32))
+		view_list = view_list_ptr.read_array_of_type(FFI.find_type(:uint32), :read_uint32, view_list_entries)
 		#view_list = []
 		#view_list_entries.times do |i|
 			#view_list << (view_list_ptr + i * FFI.type_size(:uint32)).read_uint32
