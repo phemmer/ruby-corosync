@@ -71,17 +71,11 @@ class Corosync::CPG
 	# @return [void]
 	def connect
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:cpg_handle_t))
-		cs_error = Corosync.cpg_model_initialize(handle_ptr, Corosync::CPG_MODEL_V1, @model.pointer, nil);
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to connect to corosync"
-		end
+		Corosync.cs_send(:cpg_model_initialize, handle_ptr, Corosync::CPG_MODEL_V1, @model.pointer, nil)
 		@handle = handle_ptr.read_uint64
 
 		fd_ptr = FFI::MemoryPointer.new(:int)
-		cs_error = Corosync.cpg_fd_get(@handle, fd_ptr)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get handle descriptor"
-		end
+		Corosync.cs_send(:cpg_fd_get, @handle, fd_ptr)
 		@fd = IO.new(fd_ptr.read_int)
 	end
 
@@ -90,10 +84,7 @@ class Corosync::CPG
 	def finalize
 		return if @handle.nil?
 
-		cs_error = Corosync.cpg_finalize(@handle)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to perform finalize"
-		end
+		Corosync.cs_send(:cpg_finalize, @handle)
 
 		@group = nil
 		@fd = nil
@@ -113,10 +104,7 @@ class Corosync::CPG
 		cpg_name = Corosync::CpgName.new
 		cpg_name[:value] = name
 		cpg_name[:length] = name.size
-		cs_error = Corosync.cpg_join(@handle, cpg_name)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to join group"
-		end
+		Corosync.cs_send(:cpg_join, @handle, cpg_name)
 
 		@group = name
 
@@ -132,10 +120,7 @@ class Corosync::CPG
 		cpg_name[:length] = @group.size
 
 		# we can't join multiple groups, so I dont know why corosync requires you to specify the group name
-		cs_error = Corosync.cpg_leave(@handle, cpg_name)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to leave group"
-		end
+		Corosync.cs_send(:cpg_leave, @handle, cpg_name)
 
 		@group = nil
 	end
@@ -151,11 +136,13 @@ class Corosync::CPG
 			timeout = nil if timeout == -1
 			select([@fd], [], [], timeout)
 		end
-		cs_error = Corosync.cpg_dispatch(@handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
-		return false if cs_error == :err_try_again
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting perform dispatch"
+
+		begin
+			Corosync.cs_send!(:cpg_dispatch, @handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
+		rescue Corosync::TryAgainError
+			return false
 		end
+
 		return true
 	end
 
@@ -229,10 +216,7 @@ class Corosync::CPG
 	# @return [Integer]
 	def nodeid
 		nodeid_p = FFI::MemoryPointer.new(:uint)
-		cs_error = Corosync.cpg_local_get(@handle, nodeid_p)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get nodeid"
-		end
+		Corosync.cs_send(:cpg_local_get, @handle, nodeid_p)
 		nodeid_p.read_uint
 	end
 
@@ -246,25 +230,21 @@ class Corosync::CPG
 		cpg_name[:length] = @group.size
 
 		iteration_handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:cpg_iteration_handle_t))
-		cs_error = Corosync.cpg_iteration_initialize(@handle, Corosync::CPG_ITERATION_ONE_GROUP, cpg_name, iteration_handle_ptr)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to initialize member iteration"
-		end
+		Corosync.cs_send(:cpg_iteration_initialize, @handle, Corosync::CPG_ITERATION_ONE_GROUP, cpg_name, iteration_handle_ptr)
 		iteration_handle = iteration_handle_ptr.read_uint64
 
 		begin
 			iteration_description = Corosync::CpgIterationDescriptionT.new
-			while (cs_error = Corosync.cpg_iteration_next(iteration_handle, iteration_description.pointer)) == :ok do
-				members << Corosync::CPG::Member.new(iteration_description)
-			end
-			if cs_error != :err_no_sections then
-				raise StandardError, "Received #{cs_error.to_s.upcase} attempting to iterate group members"
+			begin
+				loop do
+					Corosync.cs_send(:cpg_iteration_next, iteration_handle, iteration_description.pointer)
+					members << Corosync::CPG::Member.new(iteration_description)
+				end
+			rescue Corosync::NoSectionsError
+				# signals end of iteration
 			end
 		ensure
-			cs_error = Corosync.cpg_iteration_finalize(iteration_handle)
-			if cs_error != :ok then
-				raise StandardError, "Received #{cs_error.to_s.upcase} attempting to finalize member iteration"
-			end
+			Corosync.cs_send(:cpg_iteration_finalize, iteration_handle)
 		end
 
 		members
@@ -292,9 +272,8 @@ class Corosync::CPG
 		end
 		iovec_len = messages.size
 
-		cs_error = Corosync.cpg_mcast_joined(@handle, Corosync::CPG_TYPE_AGREED, iovec_list_p, iovec_len)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to send a message"
-		end
+		Corosync.cs_send(:cpg_mcast_joined, @handle, Corosync::CPG_TYPE_AGREED, iovec_list_p, iovec_len)
+
+		true
 	end
 end

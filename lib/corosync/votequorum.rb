@@ -50,18 +50,12 @@ class Corosync::Votequorum
 	def connect(start = false)
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:votequorum_handle_t))
 
-		cs_error = Corosync.votequorum_initialize(handle_ptr, @callbacks.pointer)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to connect to corosync"
-		end
+		Corosync.cs_send(:votequorum_initialize, handle_ptr, @callbacks.pointer)
 
 		@handle = handle_ptr.read_uint64
 
 		fd_ptr = FFI::MemoryPointer.new(:int)
-		cs_error = Corosync.votequorum_fd_get(@handle, fd_ptr)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get handle descriptor"
-		end
+		Corosync.cs_send(:votequorum_fd_get, @handle, fd_ptr)
 		@fd = IO.new(fd_ptr.read_int)
 
 		self.start if start
@@ -72,10 +66,7 @@ class Corosync::Votequorum
 	def finalize
 		return if @handle.nil?
 
-		cs_error = Corosync.votequorum_finalize(@handle)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to perform finalize"
-		end
+		Corosync.cs_send(:votequorum_finalize, @handle)
 
 		@handle = nil
 		@fd = nil
@@ -88,10 +79,7 @@ class Corosync::Votequorum
 	def start(initial_callback = false)
 		connect if @handle.nil?
 
-		cs_error = Corosync.votequorum_trackstart(@handle, 0, Corosync::CS_TRACK_CHANGES)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to start tracking quorum"
-		end
+		Corosync.cs_send(:votequorum_trackstart, @handle, 0, Corosync::CS_TRACK_CHANGES)
 
 		if initial_callback and @callback_notify then
 			@callback_notify.call(quorate?)
@@ -101,10 +89,7 @@ class Corosync::Votequorum
 	# Stop monitoring for changes.
 	# @return [void]
 	def stop
-		cs_error = Corosync.votequorum_trackstop(@handle)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to stop tracking quorum"
-		end
+		Corosync.cs_send(:votequorum_trackstop, @handle)
 	end
 
 	# Checks for a single pending event and triggers the appropriate callback if found.
@@ -119,11 +104,12 @@ class Corosync::Votequorum
 			select([@fd], [], [], timeout)
 		end
 
-		cs_error = Corosync.votequorum_dispatch(@handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
-		return false if cs_error == :err_try_again
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to perform dispatch"
+		begin
+			Corosync.cs_send(:votequorum_dispatch, @handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
+		rescue Corosync::TryAgainError
+			return false
 		end
+
 		return true
 	end
 
@@ -185,10 +171,7 @@ class Corosync::Votequorum
 	def info(node_id = 0)
 		info = Corosync::VotequorumInfo.new
 
-		cs_error = Corosync.votequorum_getinfo(@handle, node_id, info.pointer)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get info"
-		end
+		Corosync.cs_send(:votequorum_getinfo, @handle, node_id, info.pointer)
 
 		info = OpenStruct.new(Hash[info.members.zip(info.values)])
 
@@ -209,10 +192,7 @@ class Corosync::Votequorum
 	# @param count [Integer]
 	# @return [void]
 	def set_expected(count)
-		cs_error = Corosync.votequorum_setexpected(@handle, count)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to set expected votes"
-		end
+		Corosync.cs_send(:votequorum_setexpected, @handle, count)
 	end
 	alias_method :expected=, :set_expected
 
@@ -221,10 +201,7 @@ class Corosync::Votequorum
 	# @param node_id [Integer] The node to modify
 	# @return [void]
 	def set_votes(count, node_id = 0)
-		cs_error = Corosync.votequorum_setvotes(@handle, node_id, count)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to set votes"
-		end
+		Corosync.cs_send(:votequorum_setvotes, @handle, node_id, count)
 	end
 	# Set the number of votes contributed by this node.
 	# Shorthand for {#set_votes}(count)

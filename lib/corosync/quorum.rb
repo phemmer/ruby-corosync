@@ -46,18 +46,12 @@ class Corosync::Quorum
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:quorum_handle_t))
 		quorum_type_ptr = FFI::MemoryPointer.new(:uint32)
 
-		cs_error = Corosync.quorum_initialize(handle_ptr, @callbacks.pointer, quorum_type_ptr)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to connect to corosync"
-		end
+		Corosync.cs_send(:quorum_initialize, handle_ptr, @callbacks.pointer, quorum_type_ptr)
 
 		@handle = handle_ptr.read_uint64
 
 		fd_ptr = FFI::MemoryPointer.new(:int)
-		cs_error = Corosync.quorum_fd_get(@handle, fd_ptr)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get handle descriptor"
-		end
+		Corosync.cs_send(:quorum_fd_get, @handle, fd_ptr)
 		@fd = IO.new(fd_ptr.read_int)
 
 		self.start if start
@@ -68,10 +62,7 @@ class Corosync::Quorum
 	def finalize
 		return if @handle.nil?
 
-		cs_error = Corosync.quorum_finalize(@handle)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to perform finalize"
-		end
+		Corosync.cs_send(:quorum_finalize, @handle)
 
 		@handle = nil
 		@fd = nil
@@ -84,10 +75,7 @@ class Corosync::Quorum
 	def start(initial_callback = false)
 		connect if @handle.nil?
 
-		cs_error = Corosync.quorum_trackstart(@handle, Corosync::CS_TRACK_CHANGES)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to start tracking quorum"
-		end
+		Corosync.cs_send(:quorum_trackstart, @handle, Corosync::CS_TRACK_CHANGES)
 
 		if initial_callback and @callback_notify then
 			@callback_notify.call(quorate?, [])
@@ -97,10 +85,7 @@ class Corosync::Quorum
 	# Stop monitoring for changes to quorum status.
 	# @return [void]
 	def stop
-		cs_error = Corosync.quorum_trackstop(@handle)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to stop tracking quorum"
-		end
+		Corosync.cs_send(:quorum_trackstop, @handle)
 	end
 
 	# Checks for a single pending event and triggers the appropriate callback if found.
@@ -115,11 +100,12 @@ class Corosync::Quorum
 			select([@fd], [], [], timeout)
 		end
 
-		cs_error = Corosync.quorum_dispatch(@handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
-		return false if cs_error == :err_try_again
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to perform dispatch"
+		begin
+			Corosync.cs_send!(:quorum_dispatch, @handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
+		rescue Corosync::TryAgainError
+			return false
 		end
+
 		return true
 	end
 
@@ -148,10 +134,7 @@ class Corosync::Quorum
 	# @return [Boolean] Whether node is quorate.
 	def getquorate
 		quorate_ptr = FFI::MemoryPointer.new(:int)
-		cs_error = Corosync.quorum_getquorate(@handle, quorate_ptr)
-		if cs_error != :ok then
-			raise StandardError, "Received #{cs_error.to_s.upcase} attempting to get quorate"
-		end
+		Corosync.cs_send(:quorum_getquorate, @handle, quorate_ptr)
 
 		quorate_ptr.read_int > 0
 	end
