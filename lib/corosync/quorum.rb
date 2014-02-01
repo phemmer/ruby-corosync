@@ -102,7 +102,8 @@ class Corosync::Quorum
 
 		begin
 			Corosync.cs_send!(:quorum_dispatch, @handle, Corosync::CS_DISPATCH_ONE_NONBLOCKING)
-		rescue Corosync::TryAgainError
+		rescue Corosync::TryAgainError => e
+			raise e if e.depth > 1 # this exception is from a nested corosync function, not our quorum_dispatch we just called
 			return false
 		end
 
