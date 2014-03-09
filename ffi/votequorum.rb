@@ -5,6 +5,8 @@ module Corosync
   extend FFI::Library
   ffi_lib 'libvotequorum'
 
+  class VotequorumCallbacksT < FFI::Struct; end
+  class VotequorumInfo < FFI::Struct; end
   typedef :uint64, :votequorum_handle_t
   VOTEQUORUM_INFO_TWONODE = 1
   VOTEQUORUM_INFO_QUORATE = 2
@@ -46,15 +48,30 @@ module Corosync
   Callback_votequorum_expectedvotes_notification_fn_t = callback(:votequorum_expectedvotes_notification_fn_t, [ :votequorum_handle_t, :uint64, :uint32 ], :void)
   class VotequorumCallbacksT < FFI::Struct
     layout(
-           :votequorum_notify_fn, :votequorum_notification_fn_t,
-           :votequorum_expectedvotes_notify_fn, :votequorum_expectedvotes_notification_fn_t
+           :votequorum_notify_fn, Callback_votequorum_notification_fn_t,
+           :votequorum_expectedvotes_notify_fn, Callback_votequorum_expectedvotes_notification_fn_t
     )
+    def votequorum_notify_fn=(cb)
+      @votequorum_notify_fn = cb
+      self[:votequorum_notify_fn] = @votequorum_notify_fn
+    end
+    def votequorum_notify_fn
+      @votequorum_notify_fn
+    end
+    def votequorum_expectedvotes_notify_fn=(cb)
+      @votequorum_expectedvotes_notify_fn = cb
+      self[:votequorum_expectedvotes_notify_fn] = @votequorum_expectedvotes_notify_fn
+    end
+    def votequorum_expectedvotes_notify_fn
+      @votequorum_expectedvotes_notify_fn
+    end
+
   end
-  attach_function :votequorum_initialize, :votequorum_initialize, [ :pointer, :pointer ], :cs_error_t
+  attach_function :votequorum_initialize, :votequorum_initialize, [ :pointer, VotequorumCallbacksT.ptr ], :cs_error_t
   attach_function :votequorum_finalize, :votequorum_finalize, [ :votequorum_handle_t ], :cs_error_t
   attach_function :votequorum_dispatch, :votequorum_dispatch, [ :votequorum_handle_t, :cs_dispatch_flags_t ], :cs_error_t
   attach_function :votequorum_fd_get, :votequorum_fd_get, [ :votequorum_handle_t, :pointer ], :cs_error_t
-  attach_function :votequorum_getinfo, :votequorum_getinfo, [ :votequorum_handle_t, :uint, :pointer ], :cs_error_t
+  attach_function :votequorum_getinfo, :votequorum_getinfo, [ :votequorum_handle_t, :uint, VotequorumInfo.ptr ], :cs_error_t
   attach_function :votequorum_setexpected, :votequorum_setexpected, [ :votequorum_handle_t, :uint ], :cs_error_t
   attach_function :votequorum_setvotes, :votequorum_setvotes, [ :votequorum_handle_t, :uint, :uint ], :cs_error_t
   attach_function :votequorum_trackstart, :votequorum_trackstart, [ :votequorum_handle_t, :uint64, :uint ], :cs_error_t

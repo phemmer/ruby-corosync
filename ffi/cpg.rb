@@ -5,6 +5,11 @@ module Corosync
   extend FFI::Library
   ffi_lib 'libcpg'
 
+  class CpgCallbacksT < FFI::Struct; end
+  class CpgModelDataT < FFI::Struct; end
+  class CpgName < FFI::Struct; end
+  class CpgAddress < FFI::Struct; end
+  class CpgIterationDescriptionT < FFI::Struct; end
   typedef :uint64, :cpg_handle_t
   typedef :uint64, :cpg_iteration_handle_t
   CPG_TYPE_UNORDERED = 0
@@ -69,7 +74,7 @@ module Corosync
   CPG_MEMBERS_MAX = 128
   class CpgIterationDescriptionT < FFI::Struct
     layout(
-           :group, CpgName,
+           :group, CpgName.by_value,
            :nodeid, :uint32,
            :pid, :uint32
     )
@@ -80,14 +85,29 @@ module Corosync
            :seq, :uint64
     )
   end
-  Callback_cpg_deliver_fn_t = callback(:cpg_deliver_fn_t, [ :cpg_handle_t, :pointer, :uint32, :uint32, :pointer, :uint ], :void)
-  Callback_cpg_confchg_fn_t = callback(:cpg_confchg_fn_t, [ :cpg_handle_t, :pointer, :pointer, :uint, :pointer, :uint, :pointer, :uint ], :void)
-  Callback_cpg_totem_confchg_fn_t = callback(:cpg_totem_confchg_fn_t, [ :cpg_handle_t, CpgRingId, :uint32, :pointer ], :void)
+  Callback_cpg_deliver_fn_t = callback(:cpg_deliver_fn_t, [ :cpg_handle_t, :pointer, :uint32, :uint32, :pointer, :size_t ], :void)
+  Callback_cpg_confchg_fn_t = callback(:cpg_confchg_fn_t, [ :cpg_handle_t, :pointer, :pointer, :size_t, :pointer, :size_t, :pointer, :size_t ], :void)
+  Callback_cpg_totem_confchg_fn_t = callback(:cpg_totem_confchg_fn_t, [ :cpg_handle_t, CpgRingId.by_value, :uint32, :pointer ], :void)
   class CpgCallbacksT < FFI::Struct
     layout(
-           :cpg_deliver_fn, :cpg_deliver_fn_t,
-           :cpg_confchg_fn, :cpg_confchg_fn_t
+           :cpg_deliver_fn, Callback_cpg_deliver_fn_t,
+           :cpg_confchg_fn, Callback_cpg_confchg_fn_t
     )
+    def cpg_deliver_fn=(cb)
+      @cpg_deliver_fn = cb
+      self[:cpg_deliver_fn] = @cpg_deliver_fn
+    end
+    def cpg_deliver_fn
+      @cpg_deliver_fn
+    end
+    def cpg_confchg_fn=(cb)
+      @cpg_confchg_fn = cb
+      self[:cpg_confchg_fn] = @cpg_confchg_fn
+    end
+    def cpg_confchg_fn
+      @cpg_confchg_fn
+    end
+
   end
   class CpgModelDataT < FFI::Struct
     layout(
@@ -98,14 +118,36 @@ module Corosync
   class CpgModelV1DataT < FFI::Struct
     layout(
            :model, :cpg_model_t,
-           :cpg_deliver_fn, :cpg_deliver_fn_t,
-           :cpg_confchg_fn, :cpg_confchg_fn_t,
-           :cpg_totem_confchg_fn, :cpg_totem_confchg_fn_t,
+           :cpg_deliver_fn, Callback_cpg_deliver_fn_t,
+           :cpg_confchg_fn, Callback_cpg_confchg_fn_t,
+           :cpg_totem_confchg_fn, Callback_cpg_totem_confchg_fn_t,
            :flags, :uint
     )
+    def cpg_deliver_fn=(cb)
+      @cpg_deliver_fn = cb
+      self[:cpg_deliver_fn] = @cpg_deliver_fn
+    end
+    def cpg_deliver_fn
+      @cpg_deliver_fn
+    end
+    def cpg_confchg_fn=(cb)
+      @cpg_confchg_fn = cb
+      self[:cpg_confchg_fn] = @cpg_confchg_fn
+    end
+    def cpg_confchg_fn
+      @cpg_confchg_fn
+    end
+    def cpg_totem_confchg_fn=(cb)
+      @cpg_totem_confchg_fn = cb
+      self[:cpg_totem_confchg_fn] = @cpg_totem_confchg_fn
+    end
+    def cpg_totem_confchg_fn
+      @cpg_totem_confchg_fn
+    end
+
   end
-  attach_function :cpg_initialize, :cpg_initialize, [ :pointer, :pointer ], :cs_error_t
-  attach_function :cpg_model_initialize, :cpg_model_initialize, [ :pointer, :cpg_model_t, :pointer, :pointer ], :cs_error_t
+  attach_function :cpg_initialize, :cpg_initialize, [ :pointer, CpgCallbacksT.ptr ], :cs_error_t
+  attach_function :cpg_model_initialize, :cpg_model_initialize, [ :pointer, :cpg_model_t, CpgModelDataT.ptr, :pointer ], :cs_error_t
   attach_function :cpg_finalize, :cpg_finalize, [ :cpg_handle_t ], :cs_error_t
   attach_function :cpg_fd_get, :cpg_fd_get, [ :cpg_handle_t, :pointer ], :cs_error_t
   attach_function :cpg_context_get, :cpg_context_get, [ :cpg_handle_t, :pointer ], :cs_error_t
@@ -114,14 +156,14 @@ module Corosync
   attach_function :cpg_join, :cpg_join, [ :cpg_handle_t, :pointer ], :cs_error_t
   attach_function :cpg_leave, :cpg_leave, [ :cpg_handle_t, :pointer ], :cs_error_t
   attach_function :cpg_mcast_joined, :cpg_mcast_joined, [ :cpg_handle_t, :cpg_guarantee_t, :pointer, :uint ], :cs_error_t
-  attach_function :cpg_membership_get, :cpg_membership_get, [ :cpg_handle_t, :pointer, :pointer, :pointer ], :cs_error_t
+  attach_function :cpg_membership_get, :cpg_membership_get, [ :cpg_handle_t, CpgName.ptr, CpgAddress.ptr, :pointer ], :cs_error_t
   attach_function :cpg_local_get, :cpg_local_get, [ :cpg_handle_t, :pointer ], :cs_error_t
   attach_function :cpg_flow_control_state_get, :cpg_flow_control_state_get, [ :cpg_handle_t, :pointer ], :cs_error_t
-  attach_function :cpg_zcb_alloc, :cpg_zcb_alloc, [ :cpg_handle_t, :uint, :pointer ], :cs_error_t
+  attach_function :cpg_zcb_alloc, :cpg_zcb_alloc, [ :cpg_handle_t, :size_t, :pointer ], :cs_error_t
   attach_function :cpg_zcb_free, :cpg_zcb_free, [ :cpg_handle_t, :pointer ], :cs_error_t
-  attach_function :cpg_zcb_mcast_joined, :cpg_zcb_mcast_joined, [ :cpg_handle_t, :cpg_guarantee_t, :pointer, :uint ], :cs_error_t
+  attach_function :cpg_zcb_mcast_joined, :cpg_zcb_mcast_joined, [ :cpg_handle_t, :cpg_guarantee_t, :pointer, :size_t ], :cs_error_t
   attach_function :cpg_iteration_initialize, :cpg_iteration_initialize, [ :cpg_handle_t, :cpg_iteration_type_t, :pointer, :pointer ], :cs_error_t
-  attach_function :cpg_iteration_next, :cpg_iteration_next, [ :cpg_iteration_handle_t, :pointer ], :cs_error_t
+  attach_function :cpg_iteration_next, :cpg_iteration_next, [ :cpg_iteration_handle_t, CpgIterationDescriptionT.ptr ], :cs_error_t
   attach_function :cpg_iteration_finalize, :cpg_iteration_finalize, [ :cpg_iteration_handle_t ], :cs_error_t
 
 end

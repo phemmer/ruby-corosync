@@ -71,7 +71,8 @@ class Corosync::CPG
 	# @return [void]
 	def connect
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:cpg_handle_t))
-		Corosync.cs_send(:cpg_model_initialize, handle_ptr, Corosync::CPG_MODEL_V1, @model.pointer, nil)
+		model_cast = Corosync::CpgModelDataT.new(@model.to_ptr)
+		Corosync.cs_send(:cpg_model_initialize, handle_ptr, Corosync::CPG_MODEL_V1, model_cast, nil)
 		@handle = handle_ptr.read_uint64
 
 		fd_ptr = FFI::MemoryPointer.new(:int)
@@ -238,7 +239,7 @@ class Corosync::CPG
 			iteration_description = Corosync::CpgIterationDescriptionT.new
 			begin
 				loop do
-					Corosync.cs_send(:cpg_iteration_next, iteration_handle, iteration_description.pointer)
+					Corosync.cs_send(:cpg_iteration_next, iteration_handle, iteration_description)
 					members << Corosync::CPG::Member.new(iteration_description)
 				end
 			rescue Corosync::NoSectionsError
