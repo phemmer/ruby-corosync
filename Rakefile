@@ -22,7 +22,7 @@ rule '.rb' => ['.i'] do |t|
 	end
 end
 
-corosync_services = ['cpg','quorum','votequorum']
+corosync_services = ['cpg','quorum','votequorum', 'cmap']
 multitask :ffi => ['ffi/common.rb'] + corosync_services.map{|s| "ffi/#{s}.rb"}
 
 ########################################
