@@ -1,7 +1,6 @@
 GIT
   remote: git://github.com/ffi/ffi-swig-generator.git
-  revision: 818e921fc85aa58550c15e558af81edd1e8e9f69
-  ref: 818e921
+  revision: b420db1b6f2b9530ed88fc641de350cac92d47ac
   specs:
     ffi-swig-generator (0.3.3)
       nokogiri (>= 1.6.0)

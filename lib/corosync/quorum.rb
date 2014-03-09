@@ -46,7 +46,7 @@ class Corosync::Quorum
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:quorum_handle_t))
 		quorum_type_ptr = FFI::MemoryPointer.new(:uint32)
 
-		Corosync.cs_send(:quorum_initialize, handle_ptr, @callbacks.pointer, quorum_type_ptr)
+		Corosync.cs_send(:quorum_initialize, handle_ptr, @callbacks, quorum_type_ptr)
 
 		@handle = handle_ptr.read_uint64
 

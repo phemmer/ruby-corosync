@@ -8,7 +8,7 @@ module Corosync
   class Iovec < FFI::Struct
     layout(
            :iov_base, :pointer,
-           :iov_len, :uint
+           :iov_len, :size_t
     )
   end
   typedef :int64, :cs_time_t

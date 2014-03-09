@@ -50,7 +50,7 @@ class Corosync::Votequorum
 	def connect(start = false)
 		handle_ptr = FFI::MemoryPointer.new(Corosync.find_type(:votequorum_handle_t))
 
-		Corosync.cs_send(:votequorum_initialize, handle_ptr, @callbacks.pointer)
+		Corosync.cs_send(:votequorum_initialize, handle_ptr, @callbacks)
 
 		@handle = handle_ptr.read_uint64
 
@@ -171,7 +171,7 @@ class Corosync::Votequorum
 	def info(node_id = 0)
 		info = Corosync::VotequorumInfo.new
 
-		Corosync.cs_send(:votequorum_getinfo, @handle, node_id, info.pointer)
+		Corosync.cs_send(:votequorum_getinfo, @handle, node_id, info)
 
 		info = OpenStruct.new(Hash[info.members.zip(info.values)])
 
