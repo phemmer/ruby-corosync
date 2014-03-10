@@ -27,7 +27,7 @@ There are fully functional example scripts in the `examples` directory. But belo
 ### CPG
     require 'corosync/cpg'
     cpg = Corosync::CPG.new('mygroup')
-    cpg.on_message do |message, sender|
+    cpg.on_message do |sender, message|
       puts "Received #{message} from #{sender.nodeid}:#{sender.pid}"
     end
     puts "Member node IDs: #{cpg.members.map {|m| m.nodeid}.join(" ")}"

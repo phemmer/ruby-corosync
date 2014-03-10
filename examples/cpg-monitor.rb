@@ -2,7 +2,7 @@ $:.unshift(File.expand_path('../../lib', __FILE__))
 require 'corosync/cpg'
 
 cpg = Corosync::CPG.new
-cpg.on_message do |message, sender|
+cpg.on_message do |sender, message|
 	puts "MESSAGE: #{message.inspect}"
 end
 cpg.on_confchg do |member_list, left_list, joined_list|

@@ -10,7 +10,7 @@ end
 names = {}
 
 cpg = Corosync::CPG.new
-cpg.on_message do |message, sender|
+cpg.on_message do |sender, message|
   id = makeid(sender)
   message = JSON.parse(message)
   if message['type'] == 'name' then

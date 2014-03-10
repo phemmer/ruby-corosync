@@ -24,7 +24,7 @@ require 'corosync/cpg/member'
 # @example
 #   require 'corosync/cpg'
 #   cpg = Corosync::CPG.new('mygroup')
-#   cpg.on_message do |message, sender|
+#   cpg.on_message do |sender, message|
 #     puts "Received #{message}"
 #   end
 #   puts "Member node IDs: #{cpg.members.map {|m| m.nodeid}.join(" ")}"
@@ -150,8 +150,8 @@ class Corosync::CPG
 
 	# Proc to call when a message is received.
 	# @param block [Proc] Proc to call when a message is received. Pass +Nil+ to disable the callback.
+	# @yieldparam member [Corosync::CPG::Member] Sender from which the message came
 	# @yieldparam message [String] Message content.
-	# @yieldparam member [Corosync::CPG::Member] Member from which the message came
 	# @return [void]
 	def on_message(&block)
 		@callback_deliver = block
@@ -159,7 +159,7 @@ class Corosync::CPG
 	def callback_deliver(handle, group_name_p, nodeid, pid, message_p, message_len)
 		return if !@callback_deliver
 		message = message_p.read_bytes(message_len)
-		@callback_deliver.call(message, Corosync::CPG::Member.new(nodeid, pid))
+		@callback_deliver.call(Corosync::CPG::Member.new(nodeid, pid), message)
 	end
 	private :callback_deliver
 
