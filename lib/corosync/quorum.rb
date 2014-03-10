@@ -69,17 +69,13 @@ class Corosync::Quorum
 	end
 
 	# Start monitoring for changes to quorum status.
-	# This basically just enables triggering the callback. If not called you can still call {#quorate?} to get quorum state.
-	# @param initial_callback [Boolean] Whether to call the callback after start.
+	# This basically just enables triggering the callback on changes. If not called you can still call {#quorate?} to get quorum state.
+	# The callback will be called immediately upon start.
 	# @return [Boolean]
-	def start(initial_callback = false)
+	def start
 		connect if @handle.nil?
 
 		Corosync.cs_send(:quorum_trackstart, @handle, Corosync::CS_TRACK_CHANGES)
-
-		if initial_callback and @callback_notify then
-			@callback_notify.call(quorate?, [])
-		end
 	end
 
 	# Stop monitoring for changes to quorum status.
