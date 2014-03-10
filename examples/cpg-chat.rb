@@ -3,19 +3,15 @@ require 'corosync/cpg'
 require 'json'
 
 require 'zlib'
-def makeid(nodeid,pid = nil)
-  if nodeid.is_a?(Corosync::CPG::Member) then
-    pid = nodeid.pid
-    nodeid = nodeid.nodeid
-  end
-  Zlib::crc32("#{nodeid} #{pid}").to_s(36)
+def makeid(member)
+  Zlib::crc32("#{member.nodeid} #{member.pid}").to_s(36)
 end
 
 names = {}
 
 cpg = Corosync::CPG.new
-cpg.on_message do |message, nodeid, pid|
-  id = makeid(nodeid, pid)
+cpg.on_message do |message, sender|
+  id = makeid(sender)
   message = JSON.parse(message)
   if message['type'] == 'name' then
     $stdout.puts "! #{names[id] || id} is now known as #{message['data']}" if names[id] != message['data']

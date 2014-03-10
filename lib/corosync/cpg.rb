@@ -24,7 +24,7 @@ require 'corosync/cpg/member'
 # @example
 #   require 'corosync/cpg'
 #   cpg = Corosync::CPG.new('mygroup')
-#   cpg.on_message do |message, member|
+#   cpg.on_message do |message, sender|
 #     puts "Received #{message}"
 #   end
 #   puts "Member node IDs: #{cpg.members.map {|m| m.nodeid}.join(" ")}"
