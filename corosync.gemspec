@@ -1,6 +1,6 @@
 require File.expand_path('../lib/version.rb', __FILE__)
 
-Gem::Specification.new 'corosync', Corosync::GEM_VERSION do |s|
+Gem::Specification.new 'corosync', File.read('VERSION').chomp do |s|
 	s.description = 'An interface to the Corosync clustering services.'
 	s.summary = 'Corosync library interface'
 	s.homepage = 'http://github.com/phemmer/ruby-corosync/'
