@@ -36,6 +36,18 @@ There are fully functional example scripts in the `examples` directory. But belo
       cpg.dispatch
     end
 
+### Quorum
+    require 'corosync/quorum'
+    quorum = Corosync::Quorum.new
+    quorum.on_notify do |quorate, member_list|
+      puts "Cluster is#{quorate ? '' : ' not'} quorate"
+      puts "  Members: #{member_list.join(' ')}"
+    end
+    quorum.connect(true)
+    loop do
+      quorum.dispatch
+    end
+
 ### CMAP
     require 'corosync/cmap'
     cmap = Corosync::CMAP.new

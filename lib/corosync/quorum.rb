@@ -8,15 +8,15 @@ require File.expand_path('../../../ffi/quorum.rb', __FILE__)
 #
 # @example
 #   require 'corosync/quorum'
-#   quorum = Corosync::Quorum.new
-#   quorum.on_notify do |quorate,member_list|
-#     puts "Cluster is#{quorate ? '' ' not'} quorate"
-#     puts "  Members: #{member_list.join(' ')}"
-#   end
-#   quorum.connect
-#   loop do
-#     quorum.dispatch
-#   end
+#		quorum = Corosync::Quorum.new
+#		quorum.on_notify do |quorate, member_list|
+#			puts "Cluster is#{quorate ? '' : ' not'} quorate"
+#			puts "  Members: #{member_list.join(' ')}"
+#		end
+#		quorum.connect(true)
+#		loop do
+#			quorum.dispatch
+#		end
 
 class Corosync::Quorum
 	# The IO object containing the file descriptor notifications come across.
