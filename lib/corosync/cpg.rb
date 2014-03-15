@@ -271,6 +271,7 @@ class Corosync::CPG
 			message = messages[i].to_s
 			iovec[:iov_base] = FFI::MemoryPointer.from_string(message)
 			iovec[:iov_len] = message.size
+			iovec
 		end
 		iovec_len = messages.size
 
