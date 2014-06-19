@@ -177,13 +177,15 @@ class Corosync::CMAP
 				Corosync.cs_send(:cmap_get, @handle, name, nil, size_ptr, type_ptr)
 				type = type_ptr.read_type(Corosync.find_type(:cmap_value_types_t))
 				type = Corosync.enum_type(:cmap_value_types_t)[type]
-				if SIZEMAP.keys.include(type) then
+				if SIZEMAP.keys.include?(type) then
 					size = size_ptr.read_type(:size_t)
 					if size <= SIZEMAP[type].bytes then
 						# it fits within the existing type
 						throw :type, type
 					end
 					# it doesnt fit, we need to re-type it
+				else
+					raise RuntimeError, "Received unexpected type: #{type}"
 				end
 			rescue Corosync::NotExistError
 			end

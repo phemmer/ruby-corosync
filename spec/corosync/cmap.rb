@@ -45,6 +45,17 @@ describe Corosync::CMAP do
 		expect(@cmap.get("test.string")).to eq([:string, 'xyzzy'])
 	end
 
+	it 'can set an automatic type' do
+		@cmap.set("test.auto", :int32, 1234)
+		expect{@cmap.set_value("test.auto", 12345678)}.to_not raise_error
+		expect(@cmap.get("test.auto")).to eq([:int32, 12345678])
+	end
+
+	it 'can get just the value' do
+		@cmap.set("test.auto", :int32, 1234)
+		expect(@cmap.get_value("test.auto")).to eq(1234)
+	end
+
 	it 'can increment a value' do
 		@cmap.set('test.inc', :int32, 100)
 		expect{@cmap.inc('test.inc')}.to_not raise_error
