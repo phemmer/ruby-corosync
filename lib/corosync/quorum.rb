@@ -76,6 +76,9 @@ class Corosync::Quorum
 		connect if @handle.nil?
 
 		Corosync.cs_send(:quorum_trackstart, @handle, Corosync::CS_TRACK_CHANGES)
+		if @callback_notify then
+			@callback_notify.call(quorate?, [])
+		end
 	end
 
 	# Stop monitoring for changes to quorum status.

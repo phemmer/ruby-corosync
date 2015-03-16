@@ -18,7 +18,7 @@ describe Corosync::Quorum do
         have_callback = true
       end
 
-      @quorum.start(true)
+      @quorum.start
 
       expect(@quorum.fd).to be_an_instance_of(IO)
       expect(have_callback).to be_true
