@@ -15,6 +15,10 @@ Corosync is a cluster communication engine for communication between nodes opera
 
 Corosync offers these services through a C API. This gem utilizes [ffi](http://github.com/ffi/ffi) to provide the interface to that API.
 
+### Ruby stack size
+Note that due to limitations in ruby versions prior to 2.0, usage of this gem is severely limited. As such the minimum ruby version supported is 2.0. See the **threading notice** section of the [CPG documentation](http://www.rubydoc.info/gems/corosync/Corosync/CPG).
+Even with ruby 2.0, you must set the `RUBY_THREAD_MACHINE_STACK_SIZE` environment variable higher than 1mb, recommended value is 1572864 (1.5mb)
+
 
 ## State
 

@@ -16,8 +16,8 @@ require 'corosync/cpg/member'
 #
 # == Threading notice
 # With MRI Ruby 1.9.3 and older, you cannot call {#dispatch} from within a thread. Attempting to do so will result in a segfault.  
-# This is because the Corosync library allocates a very large buffer on the stack, and these versions of Ruby do not allocate enough memory to the thread stack.  
-# With MRI Ruby 2.0.0 the behavior is a bit different. There is a workaround, but without it, calling {#dispatch} will result in the thread hanging. The workaround is that you you can pass the environment variable RUBY_THREAD_MACHINE_STACK_SIZE to increase the size of the thread stack. The recommended size is 1572864.
+# This is because the Corosync library allocates a 1mb buffer on the stack, and these versions of Ruby only allocate 512kb to the thread stack.  
+# With MRI Ruby 2.0.0 the observed behavior is a bit different. There is a workaround, but without it, calling {#dispatch} will result in the thread hanging. The workaround is that you you can pass the environment variable RUBY_THREAD_MACHINE_STACK_SIZE to increase the size of the thread stack. The recommended size is 1572864.
 #
 # ----
 #

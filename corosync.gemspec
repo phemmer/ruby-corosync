@@ -7,5 +7,7 @@ Gem::Specification.new 'corosync', File.read('VERSION').chomp do |s|
 	s.license = 'MIT'
 	s.files = %x{git ls-files}.split("\n")
 
+	s.required_ruby_version = '>= 2.0.0'
+
 	s.add_runtime_dependency 'ffi', '~> 1.9'
 end
