@@ -88,7 +88,7 @@ class Corosync::CPG::MemberList
 	#   * :procdown => The member left the group uncleanly (without calling {#leave})
 	def reason(member)
 		member = Corosync::CPG::Member.new if !member.is_a?(Corosync::CPG::Member)
-		@list[member]
+		Corosync.enum_type(:cpg_reason_t)[@list[member]]
 	end
 
 	# @return [Corosync::CPG::MemberList]
